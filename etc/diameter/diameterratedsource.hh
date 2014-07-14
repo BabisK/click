@@ -3,6 +3,7 @@
 #include <click/element.hh>
 #include <click/tokenbucket.hh>
 #include <click/task.hh>
+#include "diameter.hh"
 CLICK_DECLS
 
 class DiameterRatedSource : public Element
@@ -30,9 +31,12 @@ public:
     unsigned _limit;
     bool _active;
     bool _stop;
+    uint32_t _code;
+    uint32_t _appid;
     Packet *_packet;
     Task _task;
     Timer _timer;
+    DiameterHeader dh;
 
     void setup_packet();
 

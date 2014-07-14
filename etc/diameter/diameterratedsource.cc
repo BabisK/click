@@ -18,20 +18,24 @@ DiameterRatedSource::DiameterRatedSource()
 int
 DiameterRatedSource::configure(Vector<String> &conf, ErrorHandler *errh)
 {
+	srand(time(NULL));
     String data =
 	"Random bullshit in a packet, at least 64 bytes long. Well, now it is.";
     unsigned rate = 10;
-    unsigned bandwidth = 0;
     int limit = -1;
-    int datasize = -1;
     bool active = true, stop = false;
+    uint32_t code = 0;
+    uint32_t appid = 0;
+    bool request;
 
     if (Args(conf, this, errh)
 	.read_p("RATE", rate)
 	.read_p("LIMIT", limit)
 	.read_p("ACTIVE", active)
+	.read_m("CODE", code)
+	.read_m("REQUEST", request)
+	.read("APPID", appid)
 	.read("STOP", stop)
-	.read("BANDWIDTH", BandwidthArg(), bandwidth)
 	.complete() < 0)
 	return -1;
 
@@ -40,6 +44,14 @@ DiameterRatedSource::configure(Vector<String> &conf, ErrorHandler *errh)
     _limit = (limit >= 0 ? unsigned(limit) : NO_LIMIT);
     _active = active;
     _stop = stop;
+    _code = code;
+    _appid = appid;
+
+    dh.setVersion(1);
+    dh.setLength(20);
+    dh.setRequest(request);
+    dh.setCode(_code);
+    dh.setAppId(_appid);
 
     setup_packet();
 
@@ -76,11 +88,17 @@ DiameterRatedSource::run_task(Task *)
 	return false;
     }
 
+    dh.setHbh(rand());
+    dh.setE2e(rand());
+
     _tb.refill();
     if (_tb.remove_if(1)) {
 	Packet *p = _packet->clone();
 	p->set_timestamp_anno(Timestamp::now());
-	output(0).push(p);
+	WritablePacket *wp = p->put(0);
+	wp->set_timestamp_anno(Timestamp::now());
+	dh.encode(wp->data());
+	output(0).push(wp);
 	_count++;
 	_task.fast_reschedule();
 	return true;
@@ -101,12 +119,18 @@ DiameterRatedSource::pull(int)
 	return 0;
     }
 
+    dh.setHbh(rand());
+    dh.setE2e(rand());
+
     _tb.refill();
     if (_tb.remove_if(1)) {
 	_count++;
 	Packet *p = _packet->clone();
 	p->set_timestamp_anno(Timestamp::now());
-	return p;
+	WritablePacket *wp = p->put(0);
+	wp->set_timestamp_anno(Timestamp::now());
+	dh.encode(wp->data());
+	return wp;
     } else
 	return 0;
 }
@@ -120,17 +144,8 @@ DiameterRatedSource::setup_packet()
     // note: if you change `headroom', change `click-align'
     unsigned int headroom = 16+20+24;
 
-    if (_datasize < 0)
-	_packet = Packet::make(headroom, (unsigned char *) _data.data(), _data.length(), 0);
-    else if (_datasize <= _data.length())
-	_packet = Packet::make(headroom, (unsigned char *) _data.data(), _datasize, 0);
-    else {
-	// make up some data to fill extra space
-	StringAccum sa;
-	while (sa.length() < _datasize)
-	    sa << _data;
-	_packet = Packet::make(headroom, (unsigned char *) sa.data(), _datasize, 0);
-    }
+    uint8_t data[20] = {0};
+    _packet = Packet::make(headroom, reinterpret_cast<unsigned char*>(data), 20, 0);
 }
 
 String
@@ -138,8 +153,6 @@ DiameterRatedSource::read_param(Element *e, void *vparam)
 {
   DiameterRatedSource *rs = (DiameterRatedSource *)e;
   switch ((intptr_t)vparam) {
-   case 0:			// data
-    return rs->_data;
    case 1:			// rate
     return String(rs->_tb.rate());
    case 2:			// limit
@@ -155,13 +168,6 @@ DiameterRatedSource::change_param(const String &s, Element *e, void *vparam,
 {
 	DiameterRatedSource *rs = (DiameterRatedSource *)e;
   switch ((intptr_t)vparam) {
-
-  case 0:			// data
-      rs->_data = s;
-      if (rs->_packet)
-	  rs->_packet->kill();
-      rs->_packet = Packet::make(rs->_data.data(), rs->_data.length());
-      break;
 
   case 1: {			// rate
       unsigned rate;
@@ -199,14 +205,6 @@ DiameterRatedSource::change_param(const String &s, Element *e, void *vparam,
       break;
   }
 
-  case 6: {			// datasize
-      int datasize;
-      if (!IntArg().parse(s, datasize))
-	  return errh->error("syntax error");
-      rs->_datasize = datasize;
-      rs->setup_packet();
-      break;
-  }
   }
   return 0;
 }
@@ -214,8 +212,6 @@ DiameterRatedSource::change_param(const String &s, Element *e, void *vparam,
 void
 DiameterRatedSource::add_handlers()
 {
-  add_read_handler("data", read_param, 0, Handler::CALM);
-  add_write_handler("data", change_param, 0, Handler::RAW);
   add_read_handler("rate", read_param, 1);
   add_write_handler("rate", change_param, 1);
   add_read_handler("limit", read_param, 2, Handler::CALM);
@@ -224,11 +220,6 @@ DiameterRatedSource::add_handlers()
   add_write_handler("active", change_param, 3);
   add_data_handlers("count", Handler::OP_READ, &_count);
   add_write_handler("reset", change_param, 5, Handler::BUTTON);
-  add_data_handlers("length", Handler::OP_READ, &_datasize);
-  add_write_handler("length", change_param, 6);
-  // deprecated
-  add_data_handlers("datasize", Handler::OP_READ | Handler::DEPRECATED, &_datasize);
-  add_write_handler("datasize", change_param, 6);
 
   if (output_is_push(0))
     add_task_handlers(&_task);
