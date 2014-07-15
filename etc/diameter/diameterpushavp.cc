@@ -6,11 +6,68 @@
 #include <iostream>
 CLICK_DECLS
 
-DiameterPushAVP::DiameterPushAVP()
-: datastring(), datauint(0) {}
+enum randStringType{
+	AlphaNum,
+	Num,
+	Alpha,
+	Hex
+};
 
-int
-DiameterPushAVP::configure(Vector<String> &conf, ErrorHandler *errh)
+static String randString(randStringType type, size_t size)
+{
+	static const char alphaNum[] =
+	        "0123456789"
+	        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	        "abcdefghijklmnopqrstuvwxyz";
+
+	static const char num[] =
+	        "0123456789";
+
+	static const char alpha[] =
+	        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	        "abcdefghijklmnopqrstuvwxyz";
+
+	static const char hex[] =
+	        "0123456789"
+	        "ABCDEFG"
+	        "abcdefg";
+
+	String ret;
+	switch(type)
+	{
+	case AlphaNum:
+		while(size-- > 0)
+		{
+			ret.append(alphaNum[rand() % sizeof(alphaNum)]);
+		}
+		break;
+	case Num:
+		while(size-- > 0)
+		{
+			ret.append(num[rand() % sizeof(num)]);
+		}
+		break;
+	case Alpha:
+		while(size-- > 0)
+		{
+			ret.append(alpha[rand() % sizeof(alpha)]);
+		}
+		break;
+	case Hex:
+		while(size-- > 0)
+		{
+			ret.append(hex[rand() % sizeof(hex)]);
+		}
+		break;
+	}
+
+	return ret;
+}
+
+DiameterPushAVP::DiameterPushAVP()
+: datastring(), datauint(0), randUInt32(false), randAlphaNumString(0), randNumString(0), randAlphaString(0), randHexString(0) {}
+
+int DiameterPushAVP::configure(Vector<String> &conf, ErrorHandler *errh)
 {
 	srand(time(NULL));
 
@@ -18,13 +75,17 @@ DiameterPushAVP::configure(Vector<String> &conf, ErrorHandler *errh)
 	bool vendorSpec;
 	uint32_t vendorId;
 
-
 	if (Args(conf, this, errh)
 		.read_m("CODE", code)
 		.read("VENDORSPEC", vendorSpec)
 		.read("VENDOR", vendorId)
 		.read("OCTETSTRING", datastring)
 		.read("UINT32", datauint)
+		.read("RANDUINT32", randUInt32)
+		.read("RANDALPHANUMSTRING", randAlphaNumString)
+		.read("RANDNUMSTRING", randNumString)
+		.read("RANDALPHASTRING", randAlphaString)
+		.read("RANDHEXSTRING", randHexString)
 		.complete() < 0)
 		return -1;
 
@@ -45,15 +106,37 @@ DiameterPushAVP::configure(Vector<String> &conf, ErrorHandler *errh)
 
 Packet* DiameterPushAVP::simple_action(Packet * p_in)
 {
+	if(randUInt32 == true)
+	{
+		datauint = rand();
+	}
+	else if(randAlphaNumString > true)
+	{
+		datastring = randString(AlphaNum, randAlphaNumString);
+	}
+	else if(randNumString > 0)
+	{
+		datastring = randString(Num, randNumString);
+	}
+	else if(randAlphaString > 0)
+	{
+		datastring = randString(Alpha, randAlphaString);
+	}
+	else if(randHexString > 0)
+	{
+		datastring = randString(Hex, randHexString);
+	}
+
 	uint32_t avpHeaderLength = ah.getVendorSpecific() ? 12 : 8;
 	uint32_t avpDataLength = datastring.length() > 0 ? datastring.length() : (datauint > 0 ? 4 : 0);
-	uint32_t avpLength = avpHeaderLength + (((avpDataLength + 3)/4)*4);
-	WritablePacket *p = p_in->put(avpLength);
+	uint32_t avpLength = avpHeaderLength + avpDataLength;
+	uint32_t avpLengthPadded = ((avpLength + 3) / 4) * 4;
+	WritablePacket *p = p_in->put(avpLengthPadded);
 
 	DiameterHeader dh;
 	dh.decode(p->data());
 
-	memset(p->data() + dh.getLength(), 0, avpLength);
+	memset(p->data() + dh.getLength(), 0, avpLengthPadded);
 
 	ah.setLength(avpLength);
 	ah.encode(p->data() + dh.getLength());
@@ -67,7 +150,7 @@ Packet* DiameterPushAVP::simple_action(Packet * p_in)
 		memcpy(p->data() + dh.getLength() + avpHeaderLength, &hton, avpDataLength);
 	}
 
-	dh.setLength(dh.getLength() + ah.getLength());
+	dh.setLength(dh.getLength() + ah.getLengthPadded());
 	dh.encode(p->data());
 
 	return p;

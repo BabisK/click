@@ -11,8 +11,7 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 
-class DiameterHeader
-{
+class DiameterHeader {
 private:
 	uint8_t version;
 	uint32_t length;
@@ -26,8 +25,7 @@ private:
 	uint32_t e2e;
 
 public:
-	void setVersion(uint8_t version)
-	{
+	void setVersion(uint8_t version) {
 		this->version = version;
 	}
 
@@ -107,27 +105,34 @@ public:
 		this->retransmitted = retransmitted;
 	}
 
-	void decode(const uint8_t* buffer)
-	{
+	void decode(const uint8_t* buffer) {
 		version = buffer[0];
-		length = ((buffer[1] << 16) & 0x00FF0000) | ((buffer[2] << 8) & 0x0000FF00) | (buffer[3] & 0x000000FF);
+		length = ((buffer[1] << 16) & 0x00FF0000)
+				| ((buffer[2] << 8) & 0x0000FF00) | (buffer[3] & 0x000000FF);
 		request = buffer[4] >> 7;
 		proxiable = (buffer[4] >> 6) & 0x1;
 		error = (buffer[4] >> 5) & 0x1;
 		retransmitted = (buffer[4] >> 4) & 0x1;
-		code = ((buffer[5] << 16) & 0x00FF0000) | ((buffer[6] << 8) & 0x0000FF00) | (buffer[7] & 0x000000FF);
-		appId = ((buffer[8] << 24) & 0xFF000000) | ((buffer[9] << 16) & 0x00FF0000) | ((buffer[10] << 8) & 0x0000FF00) | (buffer[11] & 0x000000FF);
-		hbh = ((buffer[12] << 24) & 0xFF000000) | ((buffer[13] << 16) & 0x00FF0000) | ((buffer[14] << 8) & 0x0000FF00) | (buffer[15] & 0x000000FF);
-		e2e = ((buffer[16] << 24) & 0xFF000000) | ((buffer[17] << 16) & 0x00FF0000) | ((buffer[18] << 8) & 0x0000FF00) | (buffer[19] & 0x000000FF);
+		code = ((buffer[5] << 16) & 0x00FF0000)
+				| ((buffer[6] << 8) & 0x0000FF00) | (buffer[7] & 0x000000FF);
+		appId = ((buffer[8] << 24) & 0xFF000000)
+				| ((buffer[9] << 16) & 0x00FF0000)
+				| ((buffer[10] << 8) & 0x0000FF00) | (buffer[11] & 0x000000FF);
+		hbh = ((buffer[12] << 24) & 0xFF000000)
+				| ((buffer[13] << 16) & 0x00FF0000)
+				| ((buffer[14] << 8) & 0x0000FF00) | (buffer[15] & 0x000000FF);
+		e2e = ((buffer[16] << 24) & 0xFF000000)
+				| ((buffer[17] << 16) & 0x00FF0000)
+				| ((buffer[18] << 8) & 0x0000FF00) | (buffer[19] & 0x000000FF);
 	}
 
-	void encode(uint8_t* buffer)
-	{
+	void encode(uint8_t* buffer) {
 		buffer[0] = version;
 		buffer[1] = (length >> 16) & 0xFF;
 		buffer[2] = (length >> 8) & 0xFF;
 		buffer[3] = length & 0xFF;
-		buffer[4] = (request << 7) | (proxiable << 6) | (error << 5) | (retransmitted << 4);
+		buffer[4] = (request << 7) | (proxiable << 6) | (error << 5)
+				| (retransmitted << 4);
 		buffer[5] = (code >> 16) & 0xFF;
 		buffer[6] = (code >> 8) & 0xFF;
 		buffer[7] = code & 0xFF;
@@ -146,8 +151,7 @@ public:
 	}
 };
 
-class AvpHeader
-{
+class AvpHeader {
 private:
 	uint32_t code;
 	bool vendorSpecific;
@@ -156,6 +160,11 @@ private:
 	uint32_t vendorId;
 
 public:
+	AvpHeader() :
+			code(0), vendorSpecific(false), mandatory(false), length(0), vendorId(
+					0) {
+	}
+
 	uint32_t getCode() const {
 		return code;
 	}
@@ -196,24 +205,29 @@ public:
 		this->vendorSpecific = vendorSpecific;
 	}
 
-	void decode(const uint8_t* buffer)
-	{
-		code = ((buffer[0] << 24) & 0xFF000000) | ((buffer[1] << 16) & 0x00FF0000) | ((buffer[2] << 8) & 0x0000FF00) | (buffer[3] & 0x000000FF);
+	uint32_t getLengthPadded() const {
+		return (((this->length + 3) / 4) * 4);
+	}
+
+	void decode(const uint8_t* buffer) {
+		code = ((buffer[0] << 24) & 0xFF000000)
+				| ((buffer[1] << 16) & 0x00FF0000)
+				| ((buffer[2] << 8) & 0x0000FF00) | (buffer[3] & 0x000000FF);
 		vendorSpecific = (buffer[4] >> 7) & 0x1;
 		mandatory = (buffer[4] >> 6) & 0x1;
-		length = ((buffer[5] << 16) & 0x00FF0000) | ((buffer[6] << 8) & 0x0000FF00) | (buffer[7] & 0x000000FF);
-		if(vendorSpecific)
-		{
-			vendorId = ((buffer[8] << 24) & 0xFF000000) | ((buffer[9] << 16) & 0x00FF0000) | ((buffer[10] << 8) & 0x0000FF00) | (buffer[11] & 0x000000FF);
-		}
-		else
-		{
+		length = ((buffer[5] << 16) & 0x00FF0000)
+				| ((buffer[6] << 8) & 0x0000FF00) | (buffer[7] & 0x000000FF);
+		if (vendorSpecific) {
+			vendorId = ((buffer[8] << 24) & 0xFF000000)
+					| ((buffer[9] << 16) & 0x00FF0000)
+					| ((buffer[10] << 8) & 0x0000FF00)
+					| (buffer[11] & 0x000000FF);
+		} else {
 			vendorId = 0;
 		}
 	}
 
-	void encode(uint8_t* buffer)
-	{
+	void encode(uint8_t* buffer) {
 		buffer[0] = (code >> 24) & 0xFF;
 		buffer[1] = (code >> 16) & 0xFF;
 		buffer[2] = (code >> 8) & 0xFF;
@@ -222,8 +236,7 @@ public:
 		buffer[5] = (length >> 16) & 0xFF;
 		buffer[6] = (length >> 8) & 0xFF;
 		buffer[7] = length & 0xFF;
-		if(vendorSpecific)
-		{
+		if (vendorSpecific) {
 			buffer[8] = (vendorId >> 24) & 0xFF;
 			buffer[9] = (vendorId >> 16) & 0xFF;
 			buffer[10] = (vendorId >> 8) & 0xFF;
@@ -233,39 +246,37 @@ public:
 };
 
 /*struct diameterHeader
-{
-	uint8_t version : 8;
-	uint32_t length : 24;
-	uint32_t request : 1;
-	uint32_t proxiable : 1;
-	uint32_t error : 1;
-	uint32_t retransmitted : 1;
-	uint32_t : 4;
-	uint32_t code : 24;
-	uint32_t appId : 32;
-	uint32_t hbh : 32;
-	uint32_t e2e : 32;
-};*/
+ {
+ uint8_t version : 8;
+ uint32_t length : 24;
+ uint32_t request : 1;
+ uint32_t proxiable : 1;
+ uint32_t error : 1;
+ uint32_t retransmitted : 1;
+ uint32_t : 4;
+ uint32_t code : 24;
+ uint32_t appId : 32;
+ uint32_t hbh : 32;
+ uint32_t e2e : 32;
+ };*/
 
 /*struct avpHeader
-{
-	uint32_t code : 32;
-	uint8_t vendorSpecific : 1;
-	uint8_t mandatory : 2;
-	uint8_t : 6;
-	uint32_t length : 24;
-};
+ {
+ uint32_t code : 32;
+ uint8_t vendorSpecific : 1;
+ uint8_t mandatory : 2;
+ uint8_t : 6;
+ uint32_t length : 24;
+ };
 
-struct avpHeaderVendor
-{
-	uint32_t code : 32;
-	uint8_t vendorSpecific : 1;
-	uint8_t mandatory : 2;
-	uint8_t : 6;
-	uint32_t length : 24;
-	uint32_t vendor : 32;
-};*/
-
-
+ struct avpHeaderVendor
+ {
+ uint32_t code : 32;
+ uint8_t vendorSpecific : 1;
+ uint8_t mandatory : 2;
+ uint8_t : 6;
+ uint32_t length : 24;
+ uint32_t vendor : 32;
+ };*/
 
 #endif /* DIAMETER_HH_ */

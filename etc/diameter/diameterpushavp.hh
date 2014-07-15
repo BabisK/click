@@ -25,6 +25,11 @@ private:
 	AvpHeader ah;
 	String datastring;
 	uint32_t datauint;
+	bool randUInt32;
+	size_t randAlphaNumString;
+	size_t randNumString;
+	size_t randAlphaString;
+	size_t randHexString;
 };
 
 CLICK_ENDDECLS
