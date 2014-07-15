@@ -1,15 +1,16 @@
 #include <click/config.h>
-#include "diameterappendavp.hh"
+#include "diameterpushavp.hh"
 #include <click/args.hh>
 #include <click/confparse.hh>
 #include <click/glue.hh>
+#include <iostream>
 CLICK_DECLS
 
-DiameterAppendAVP::DiameterAppendAVP()
+DiameterPushAVP::DiameterPushAVP()
 : datastring(), datauint(0) {}
 
 int
-DiameterAppendAVP::configure(Vector<String> &conf, ErrorHandler *errh)
+DiameterPushAVP::configure(Vector<String> &conf, ErrorHandler *errh)
 {
 	srand(time(NULL));
 
@@ -42,11 +43,11 @@ DiameterAppendAVP::configure(Vector<String> &conf, ErrorHandler *errh)
 	return 0;
 }
 
-Packet* DiameterAppendAVP::simple_action(Packet * p_in)
+Packet* DiameterPushAVP::simple_action(Packet * p_in)
 {
 	uint32_t avpHeaderLength = ah.getVendorSpecific() ? 12 : 8;
 	uint32_t avpDataLength = datastring.length() > 0 ? datastring.length() : (datauint > 0 ? 4 : 0);
-	uint32_t avpLength = avpHeaderLength + ((avpDataLength + 3)%4)*4;
+	uint32_t avpLength = avpHeaderLength + (((avpDataLength + 3)/4)*4);
 	WritablePacket *p = p_in->put(avpLength);
 
 	DiameterHeader dh;
@@ -73,4 +74,4 @@ Packet* DiameterAppendAVP::simple_action(Packet * p_in)
 }
 
 CLICK_ENDDECLS
-EXPORT_ELEMENT(DiameterAppendAVP)
+EXPORT_ELEMENT(DiameterPushAVP)

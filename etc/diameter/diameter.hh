@@ -107,7 +107,7 @@ public:
 		this->retransmitted = retransmitted;
 	}
 
-	void decode(uint8_t* buffer)
+	void decode(const uint8_t* buffer)
 	{
 		version = buffer[0];
 		length = ((buffer[1] << 16) & 0x00FF0000) | ((buffer[2] << 8) & 0x0000FF00) | (buffer[3] & 0x000000FF);
@@ -196,7 +196,7 @@ public:
 		this->vendorSpecific = vendorSpecific;
 	}
 
-	void decode(uint8_t* buffer)
+	void decode(const uint8_t* buffer)
 	{
 		code = ((buffer[0] << 24) & 0xFF000000) | ((buffer[1] << 16) & 0x00FF0000) | ((buffer[2] << 8) & 0x0000FF00) | (buffer[3] & 0x000000FF);
 		vendorSpecific = (buffer[4] >> 7) & 0x1;
