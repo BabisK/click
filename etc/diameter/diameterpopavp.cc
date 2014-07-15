@@ -8,12 +8,6 @@ CLICK_DECLS
 
 DiameterPopAVP::DiameterPopAVP(){}
 
-int
-DiameterPopAVP::configure(Vector<String> &conf, ErrorHandler *errh)
-{
-	return 0;
-}
-
 Packet* DiameterPopAVP::simple_action(Packet * p_in)
 {
 	DiameterHeader dh;
@@ -24,11 +18,11 @@ Packet* DiameterPopAVP::simple_action(Packet * p_in)
 	while(nextAvp < p_in->data() + dh.getLength())
 	{
 		ah.decode(nextAvp);
-		nextAvp += ah.getLength();
+		nextAvp += ah.getLengthPadded();
 	}
-	p_in->take(ah.getLength());
+	p_in->take(ah.getLengthPadded());
 	WritablePacket* wp = p_in->put(0);
-	dh.setLength(dh.getLength() - ah.getLength());
+	dh.setLength(dh.getLength() - ah.getLengthPadded());
 	dh.encode(wp->data());
 
 	return wp;
