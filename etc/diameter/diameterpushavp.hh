@@ -11,11 +11,11 @@
 #include "diameter.hh"
 CLICK_DECLS
 
-class DiameterAppendAVP : public Element
+class DiameterPushAVP : public Element
 {
 public:
-	DiameterAppendAVP() CLICK_COLD;
-	const char *class_name() const		{ return "DiameterAppendAVP"; }
+	DiameterPushAVP() CLICK_COLD;
+	const char *class_name() const		{ return "DiameterPushAVP"; }
 	const char *port_count() const		{ return PORTS_1_1; }
 
 	int configure(Vector<String> &conf, ErrorHandler *errh) CLICK_COLD;
@@ -25,7 +25,6 @@ private:
 	AvpHeader ah;
 	String datastring;
 	uint32_t datauint;
-
 };
 
 CLICK_ENDDECLS
