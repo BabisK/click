@@ -6,6 +6,9 @@ CLICK_DECLS
 
 class DiameterDecap : public Element
 {
+public:
+	DiameterDecap() CLICK_COLD;
+
 	const char *class_name() const		{ return "DiameterDecap"; }
     const char *port_count() const		{ return PORTS_1_1; }
 

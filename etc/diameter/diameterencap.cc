@@ -3,6 +3,8 @@
 #include <click/args.hh>
 CLICK_DECLS
 
+DiameterEncap::DiameterEncap(){}
+
 int DiameterEncap::configure(Vector<String> &conf, ErrorHandler *errh)
 {
 	srand(time(NULL));
