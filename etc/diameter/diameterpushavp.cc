@@ -38,25 +38,25 @@ static String randString(randStringType type, size_t size)
 	case AlphaNum:
 		while(size-- > 0)
 		{
-			ret.append(alphaNum[rand() % sizeof(alphaNum)]);
+			ret.append(alphaNum[rand() % (sizeof(alphaNum)-1)]);
 		}
 		break;
 	case Num:
 		while(size-- > 0)
 		{
-			ret.append(num[rand() % sizeof(num)]);
+			ret.append(num[rand() % (sizeof(num)-1)]);
 		}
 		break;
 	case Alpha:
 		while(size-- > 0)
 		{
-			ret.append(alpha[rand() % sizeof(alpha)]);
+			ret.append(alpha[rand() % (sizeof(alpha)-1)]);
 		}
 		break;
 	case Hex:
 		while(size-- > 0)
 		{
-			ret.append(hex[rand() % sizeof(hex)]);
+			ret.append(hex[rand() % (sizeof(hex)-1)]);
 		}
 		break;
 	}
