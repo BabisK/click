@@ -1,15 +1,24 @@
 /*
- * diameter.hh
+ * diameter.{cc,hh} -- header for basic Diameter (IETF RFC 6733) structures
+ * Charalampos "Babis" Kaidos
  *
- *  Created on: Jul 12, 2014
- *      Author: babis
+ * Copyright (c) 2014 Intracom Telecom
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, subject to the conditions
+ * listed in the Click LICENSE file. These conditions include: you must
+ * preserve this copyright notice, and you cannot mention the copyright
+ * holders in advertising related to the Software without their permission.
+ * The Software is provided WITHOUT ANY WARRANTY, EXPRESS OR IMPLIED. This
+ * notice is a summary of the Click LICENSE file; the license in that file is
+ * legally binding.
  */
 
 #ifndef DIAMETER_HH
 #define DIAMETER_HH
 
 #include <stdint.h>
-#include <arpa/inet.h>
 
 class DiameterHeader {
 private:
@@ -18,7 +27,7 @@ private:
 	bool request;
 	bool proxiable;
 	bool error;
-	uint32_t retransmitted;
+	bool retransmitted;
 	uint32_t code;
 	uint32_t appId;
 	uint32_t hbh;
@@ -97,11 +106,11 @@ public:
 		this->request = request;
 	}
 
-	uint32_t getRetransmitted() const {
+	bool isRetransmitted() const {
 		return retransmitted;
 	}
 
-	void setRetransmitted(uint32_t retransmitted) {
+	void setRetransmitted(bool retransmitted) {
 		this->retransmitted = retransmitted;
 	}
 
@@ -127,6 +136,7 @@ public:
 	}
 
 	void encode(uint8_t* buffer) {
+		memset(buffer, 0, 20);
 		buffer[0] = version;
 		buffer[1] = (length >> 16) & 0xFF;
 		buffer[2] = (length >> 8) & 0xFF;
@@ -228,6 +238,12 @@ public:
 	}
 
 	void encode(uint8_t* buffer) {
+		if (vendorSpecific) {
+			memset(buffer, 0, 12);
+		} else {
+			memset(buffer, 0, 8);
+		}
+
 		buffer[0] = (code >> 24) & 0xFF;
 		buffer[1] = (code >> 16) & 0xFF;
 		buffer[2] = (code >> 8) & 0xFF;
@@ -244,39 +260,5 @@ public:
 		}
 	}
 };
-
-/*struct diameterHeader
- {
- uint8_t version : 8;
- uint32_t length : 24;
- uint32_t request : 1;
- uint32_t proxiable : 1;
- uint32_t error : 1;
- uint32_t retransmitted : 1;
- uint32_t : 4;
- uint32_t code : 24;
- uint32_t appId : 32;
- uint32_t hbh : 32;
- uint32_t e2e : 32;
- };*/
-
-/*struct avpHeader
- {
- uint32_t code : 32;
- uint8_t vendorSpecific : 1;
- uint8_t mandatory : 2;
- uint8_t : 6;
- uint32_t length : 24;
- };
-
- struct avpHeaderVendor
- {
- uint32_t code : 32;
- uint8_t vendorSpecific : 1;
- uint8_t mandatory : 2;
- uint8_t : 6;
- uint32_t length : 24;
- uint32_t vendor : 32;
- };*/
 
 #endif /* DIAMETER_HH_ */
